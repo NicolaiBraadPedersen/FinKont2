@@ -34,7 +34,7 @@ class Bachelier():
 
         return self.Bach_price(s = s, t = t, K = K) - self.BS_price(s = s, t = t, K = K, imp_vol = imp_vol)
 
-    def implied_volatility(self, K):
+    def implied_volatility(self, K, normalized):
         results = []
 
         for k in K:
@@ -44,7 +44,10 @@ class Bachelier():
                 args=(k,)
             )
             if sol.success:
-                iv = sol.x[0] * self.S0
+                if normalized:
+                    iv = sol.x[0] * self.S0
+                else :
+                    iv = sol.x[0]
             else:
                 iv = np.nan
 
@@ -55,16 +58,21 @@ class Bachelier():
 
         return results
 
-    def plot_implied_volatility(self):
+    def plot_implied_volatility(self, normalized):
         if not self.has_results:
             print('No results are available for plotting. Run self.implied_volatility!')
             return
 
-        plt.hlines(self.true_vol, xmin = np.min(self.results[1, :]), xmax = np.max(self.results[1, :]), linestyles = 'dashed', color='#35978f', label='True Volatility')
+        if normalized:
+            plt.hlines(self.true_vol, xmin = np.min(self.results[1, :]), xmax = np.max(self.results[1, :]), linestyles = 'dashed', color='#35978f', label='True Volatility')
+
         plt.scatter(self.results[1, :], self.results[0, :], color="#bf812d", s=20, label = 'Implied Volatility')
 
         plt.xlabel("Strike")
-        plt.ylabel("Implied Volatility * S_0")
+        if normalized:
+            plt.ylabel("Implied Volatility * S_0")
+        else:
+            plt.ylabel("Implied Volatility")
         plt.title(f"IV for Bachelier model | S_0 = {self.S0}")
         plt.legend()
         plt.show()
@@ -72,15 +80,16 @@ class Bachelier():
 if __name__ == '__main__':
     bach = Bachelier()
     Strikes = np.arange(80, 120 + 1)
-    imp_vol = bach.implied_volatility(K = Strikes)
-    bach.plot_implied_volatility()
-    # print([imp_vol, Strikes])
-    # plt.plot(Strikes, imp_vol)
-    # plt.show()
+
+    bach.implied_volatility(K = Strikes, normalized=False)
+    bach.plot_implied_volatility(normalized=False)
+
+    bach.implied_volatility(K=Strikes, normalized=True)
+    bach.plot_implied_volatility(normalized=True)
 
     bach.S0 = 50
-    imp_vol = bach.implied_volatility(K=Strikes)
-    bach.plot_implied_volatility()
-    # print([imp_vol, Strikes])
-    # plt.plot(Strikes, imp_vol)
-    # plt.show()
+    bach.implied_volatility(K=Strikes, normalized=False)
+    bach.plot_implied_volatility(normalized=False)
+
+    bach.implied_volatility(K=Strikes, normalized=True)
+    bach.plot_implied_volatility(normalized=True)
