@@ -2,6 +2,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
+from utils.plotting import use_earthy_style
+use_earthy_style()
+
+
 # =========================
 # Parameters
 # =========================
@@ -142,8 +146,8 @@ class QuantoPut():
         dum = np.arange(0, int(1 + np.floor(np.max(results[:, 2]))))
 
         plt.figure()
-        plt.plot(dum, self.Y0 * np.maximum(self.K - dum, 0), color='#35978f')
-        plt.scatter(results[:, 2], results[:, 0], color="#bf812d", s=20, alpha=0.4)
+        plt.plot(dum, self.Y0 * np.maximum(self.K - dum, 0))
+        plt.scatter(results[:, 2], results[:, 0], s=10, alpha=0.4)
 
         plt.xlabel("S_J(T)")
         plt.ylabel("V(T)")

@@ -3,6 +3,10 @@ import matplotlib.pyplot as plt
 from scipy.optimize import root
 from scipy.stats import norm
 
+# below is a personal style for plotting, will only work if the whole repo is cloned
+from utils.plotting import use_earthy_style
+use_earthy_style()
+
 class Bachelier():
     def __init__(self):
         self.r = 0
@@ -64,9 +68,10 @@ class Bachelier():
             return
 
         if normalized:
-            plt.hlines(self.true_vol, xmin = np.min(self.results[1, :]), xmax = np.max(self.results[1, :]), linestyles = 'dashed', color='#35978f', label='True Volatility')
+            plt.hlines(self.true_vol, xmin = np.min(self.results[1, :]), xmax = np.max(self.results[1, :]), linestyles = 'dashed', label='True Volatility', color = "#724E25")
 
-        plt.scatter(self.results[1, :], self.results[0, :], color="#bf812d", s=20, label = 'Implied Volatility')
+
+        plt.scatter(self.results[1, :], self.results[0, :], s=10, label = 'Implied Volatility')
 
         plt.xlabel("Strike")
         if normalized:
