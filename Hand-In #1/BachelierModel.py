@@ -16,6 +16,8 @@ class Bachelier():
 
         self.has_results = False
 
+        self.filepath = ''
+
     def Bach_price(self, s, t, K):
         tau = self.capT - t
         sigma = self.true_vol
@@ -80,10 +82,14 @@ class Bachelier():
             plt.ylabel("Implied Volatility")
         plt.title(f"IV for Bachelier model | S_0 = {self.S0}")
         plt.legend()
-        plt.show()
+        if self.filepath:
+            plt.savefig(self.filepath + '\\' '2.b'+ f'_n={self.n}' + '_plot_imp_vol.png')
+        #plt.show()
 
 if __name__ == '__main__':
     bach = Bachelier()
+    bach.filepath = r'C:\Users\nicol\OneDrive - University of Copenhagen\Desktop\4 år\FinKont2\HandIn1'
+
     Strikes = np.arange(80, 120 + 1)
 
     bach.implied_volatility(K = Strikes, normalized=False)

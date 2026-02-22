@@ -1,3 +1,5 @@
+from cProfile import label
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -146,12 +148,12 @@ class QuantoPut():
         dum = np.arange(0, int(1 + np.floor(np.max(results[:, 2]))))
 
         plt.figure()
-        plt.plot(dum, self.Y0 * np.maximum(self.K - dum, 0))
-        plt.scatter(results[:, 2], results[:, 0], s=10, alpha=0.4)
+        plt.scatter(results[:, 2], results[:, 0], s=10, alpha=0.4, label = 'Value of Hedge')
+        plt.plot(dum, self.Y0 * np.maximum(self.K - dum, 0), linestyle = 'dashed', color="#724E25", label = 'Option Payoff')
 
         plt.xlabel("S_J(T)")
         plt.ylabel("V(T)")
-        plt.title(self.hedge_type)
+        plt.title(f'{self.hedge_type} | n = {self.n}')
 
         plt.text(
             np.max(results[:, 2]),
@@ -169,9 +171,11 @@ class QuantoPut():
             fontsize=10,
         )
 
+        plt.legend()
+
         if self.filepath:
-            plt.savefig(self.filepath + self.hedge_type + f'_n={self.n}' + '_plot_hedge_vs_actual.png')
-        plt.show()
+            plt.savefig(self.filepath + '\\' + self.hedge_type + f'_n={self.n}' + '_plot_hedge_vs_actual.png')
+        #plt.show()
 
 
 if __name__ == '__main__':
