@@ -4,13 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 
-from utils.plotting import use_earthy_style
-use_earthy_style()
+# # below is a personal style for plotting, will only work if the whole repo is cloned
+# from utils.plotting import use_earthy_style
+# use_earthy_style()
 
-
-# =========================
-# Parameters
-# =========================
 class QuantoPut():
     def __init__(self, hedge_type):
         # all the below values can be edited after initializing the class

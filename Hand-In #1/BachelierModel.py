@@ -3,9 +3,9 @@ import matplotlib.pyplot as plt
 from scipy.optimize import root
 from scipy.stats import norm
 
-# below is a personal style for plotting, will only work if the whole repo is cloned
-from utils.plotting import use_earthy_style
-use_earthy_style()
+# # below is a personal style for plotting, will only work if the whole repo is cloned
+# from utils.plotting import use_earthy_style
+# use_earthy_style()
 
 class Bachelier():
     def __init__(self):
