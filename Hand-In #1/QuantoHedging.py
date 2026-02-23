@@ -179,16 +179,10 @@ class QuantoPut():
 
 
 if __name__ == '__main__':
-    qp_b = QuantoPut(hedge_type='3b')
-    qp_e = QuantoPut(hedge_type='3e')
-    qp_b.filepath = r'C:\Users\nicol\OneDrive - University of Copenhagen\Desktop\4 år\FinKont2\HandIn1'
-    qp_e.filepath = r'C:\Users\nicol\OneDrive - University of Copenhagen\Desktop\4 år\FinKont2\HandIn1'
+    qp = [QuantoPut(hedge_type=x) for x in ['3b', '3c', '3e']]
 
     for n in [52,252,252*3,252*10]:
-        qp_b.simulate_hedge(m = 1000, n = n)
-        qp_b.get_risk_stats()
-        qp_b.plot_hedge_vs_actual()
-
-        qp_e.simulate_hedge(m=1000, n=n)
-        qp_e.get_risk_stats()
-        qp_e.plot_hedge_vs_actual()
+        for i in range(3):
+            qp[i].simulate_hedge(m = 1000, n = n)
+            qp[i].get_risk_stats()
+            qp[i].plot_hedge_vs_actual()

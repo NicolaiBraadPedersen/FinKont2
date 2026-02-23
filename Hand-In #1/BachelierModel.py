@@ -83,7 +83,8 @@ class Bachelier():
         plt.title(f"IV for Bachelier model | S_0 = {self.S0}")
         plt.legend()
         if self.filepath:
-            plt.savefig(self.filepath + '\\' '2.b'+ f'_n={self.n}' + '_plot_imp_vol.png')
+            plt.savefig(self.filepath + '\\' '2b'+ f'_normalized={normalized}_S0={self.S0}' + '_plot_imp_vol.png')
+            plt.close()
         #plt.show()
 
 if __name__ == '__main__':
@@ -91,16 +92,10 @@ if __name__ == '__main__':
     bach.filepath = r'C:\Users\nicol\OneDrive - University of Copenhagen\Desktop\4 år\FinKont2\HandIn1'
 
     Strikes = np.arange(80, 120 + 1)
+    for s0 in [100,50]:
+        bach.S0 = s0
+        bach.implied_volatility(K = Strikes, normalized=False)
+        bach.plot_implied_volatility(normalized=False)
 
-    bach.implied_volatility(K = Strikes, normalized=False)
-    bach.plot_implied_volatility(normalized=False)
-
-    bach.implied_volatility(K=Strikes, normalized=True)
-    bach.plot_implied_volatility(normalized=True)
-
-    bach.S0 = 50
-    bach.implied_volatility(K=Strikes, normalized=False)
-    bach.plot_implied_volatility(normalized=False)
-
-    bach.implied_volatility(K=Strikes, normalized=True)
-    bach.plot_implied_volatility(normalized=True)
+        bach.implied_volatility(K=Strikes, normalized=True)
+        bach.plot_implied_volatility(normalized=True)
