@@ -1,5 +1,7 @@
 import numpy as np
 from scipy.optimize import minimize
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 class AmericanOptions:
     def __init__(self):
@@ -48,40 +50,37 @@ class AmericanOptions:
                 out.append(val)
         return out
 
-    def binomial_put_price(self,sigma, T = 3, N=1000, price_type='American'):
+    def binomial_put_price(self, sigma, T=3, N=1000, price_type='American'):
         K = self.K
         S = self.S0
         dt = 1 / N
+        total_steps = int(T * N)
+
         u = np.exp(sigma * np.sqrt(dt))
-        d = np.exp(-sigma * np.sqrt(dt))
+        d = 1 / u
         R = np.exp(self.r * dt)
-        p = (R - d) / (u - d)
+        q = (R - d) / (u - d)
 
-        X = np.array([max(0, K - (S * (d ** k * u ** (T * N - k)))) for k in range(T * N + 1)])
+        st_prices = S * (u ** np.arange(total_steps + 1)) * (d ** np.arange(total_steps, -1, -1))
+        values = np.maximum(0, K - st_prices)
 
-        XX = X.copy()
+        for i in range(total_steps - 1, -1, -1):
+            continuation_val = (q * values[1:] + (1 - q) * values[:-1]) / R
 
-        X = np.delete(X, -1)
-        XX = np.delete(XX, 0)
+            current_s = S * (u ** np.arange(i + 1)) * (d ** np.arange(i, -1, -1))
+            exercise_val = np.maximum(0, K - current_s)
 
-        Y = np.array([max(0, K - (S * (d ** k * u ** (T * N - k)))) for k in range(T * N)])
+            if price_type == 'European':
+                values = continuation_val
+            elif price_type == 'American':
+                values = np.maximum(continuation_val, exercise_val)
+            elif price_type == 'Bermudian':
+                if (i + 1) % N == 0:
+                    values = np.maximum(continuation_val, exercise_val)
+                else:
+                    values = continuation_val
 
-        for i in range(T * N, 0, -1):
-            ev = Y
-            bdv = R ** -1 * (p * X + (1 - p) * XX)
-
-            if (price_type == 'Bermudian') and (i%N != 0):
-                val = bdv
-            elif price_type == 'European':
-                val = bdv
-            else:
-                val = np.maximum(bdv, ev)
-
-            X_temp = X.copy()
-            X = np.delete(val.copy(), -1)
-            XX = np.delete(val.copy(), 0)
-            Y = np.delete(X_temp, 0)
-        return (val[0])
+        return values[0]
 
     @staticmethod
     def lag_pol(X, amount = 2):
@@ -116,14 +115,17 @@ class AmericanOptions:
 
         for i in range(T*N-1, 1, -1):
             ITM = CFM[:, i - 1] > 0
-            if ITM.sum() != 0:
+            if ITM.sum() == 0:
                 continue
             Y = disc * A_CFM[ITM, i]
             X = data[ITM, i - 1]
             Z = self.lag_pol(X, amount = amount)
 
             Q = self.lag_pol(data[:, i - 1])
-            b = np.linalg.solve(Z.T @ Z, Z.T @ Y)
+            if ITM.sum() > amount:
+                b = np.linalg.solve(Z.T @ Z, Z.T @ Y)
+            else:
+                b, _, _, _ = np.linalg.lstsq(Z, Y, rcond=None)
             E = Q @ b
 
             CFM[:, i - 1] = np.where(CFM[:, i - 1] < E, 0, CFM[:, i - 1])
@@ -153,20 +155,21 @@ class AmericanOptions:
         for i in range(10000):
             np.random.seed(i)
             self.S = self.BM(sigma=0.15,T=3,Omega=8)
-            price = self.lsm_put_price(amount=2, price_type='Bermudian')
+            price = self.lsm_put_price(amount=2)
             prices.append(price)
-
+            print(i)
+            if i % 1000 == 0:
+                print(i/10000)
         return prices
 
 if __name__ == '__main__':
     amr = AmericanOptions()
     # res = amr.volatility_ml()
     # res2 = amr.volatility_rv()
-    print(amr.binomial_put_price(sigma=0.15))
-    print(amr.binomial_put_price(sigma=0.15, price_type='Bermudian'))
-    print(amr.binomial_put_price(sigma=0.15, price_type='European'))
-    #amr.S = amr.BM(sigma = 0.1484)
-    #print(amr.lsm_put_price())
-    #b = amr.sim_exp_10000()
-
+    # print(amr.binomial_put_price(sigma=0.15))
+    # print(amr.binomial_put_price(sigma=0.15, price_type='Bermudian'))
+    # print(amr.binomial_put_price(sigma=0.15, price_type='European'))
+    b = amr.sim_exp_10000()
+    sns.kdeplot(np.array(b), bw=0.5)
+    plt.show()
     # print(res,res2)
