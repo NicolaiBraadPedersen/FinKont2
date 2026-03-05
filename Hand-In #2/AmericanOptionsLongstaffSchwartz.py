@@ -2,6 +2,7 @@ import numpy as np
 from scipy.optimize import minimize
 import seaborn as sns
 import matplotlib.pyplot as plt
+import pandas as pd
 
 class AmericanOptions:
     def __init__(self):
@@ -93,6 +94,7 @@ class AmericanOptions:
         L_5 = exp_neg_half_X * (1 - 5 * X + 5 * X ** 2 - 5 * X ** 3 / 3 + 5 * X ** 4 / 24 - X ** 5 / 120)
 
         bases = {
+            1: (L_0,L_1),
             2: (L_0, L_1, L_2),
             3: (L_0, L_1, L_2, L_3),
             4: (L_0, L_1, L_2, L_3, L_4),
@@ -101,7 +103,7 @@ class AmericanOptions:
 
         return np.column_stack(bases[amount])
 
-    def lsm_put_price(self, amount = 2):
+    def lsm_put_price(self, poly_amount = 2, OLS_form = 'Matrix', B = np.array([[]])):
         r = self.r
         data = self.S
         T = self.T
@@ -113,19 +115,29 @@ class AmericanOptions:
 
         disc = np.exp(-r*(1/N))
 
-        for i in range(T*N-1, 1, -1):
+        B_reg = np.zeros((poly_amount + 1,T*N))
+
+        for i in range(T*N, 0, -1):
             ITM = CFM[:, i - 1] > 0
             if ITM.sum() == 0:
                 continue
             Y = disc * A_CFM[ITM, i]
             X = data[ITM, i - 1]
-            Z = self.lag_pol(X, amount = amount)
+            Z = self.lag_pol(X, amount=poly_amount)
 
-            Q = self.lag_pol(data[:, i - 1])
-            if ITM.sum() > amount:
-                b = np.linalg.solve(Z.T @ Z, Z.T @ Y)
-            else:
+            Q = self.lag_pol(data[:, i - 1], amount=poly_amount)
+
+            if B.any():
+                b = B[:,i-1]
+            elif OLS_form == 'NumericRegression':
                 b, _, _, _ = np.linalg.lstsq(Z, Y, rcond=None)
+                B_reg[:,i-1] = b
+            elif OLS_form == 'Matrix':
+                if np.linalg.matrix_rank(Z.T @ Z) == np.shape(Z.T @ Z)[0]:
+                    b = np.linalg.solve(Z.T @ Z, Z.T @ Y)
+                else:
+                    b, _, _, _ = np.linalg.lstsq(Z, Y, rcond=None)
+                B_reg[:, i - 1] = b
             E = Q @ b
 
             CFM[:, i - 1] = np.where(CFM[:, i - 1] < E, 0, CFM[:, i - 1])
@@ -138,7 +150,7 @@ class AmericanOptions:
 
         price = np.mean(disc_CashFlows)
 
-        return price
+        return price, B_reg
 
     def BM(self, sigma, T=3, Omega=10000):
         N = self.N
@@ -149,27 +161,88 @@ class AmericanOptions:
         x[:, 1:] = self.S0 * np.exp(np.cumsum((self.r - 0.5 * sigma ** 2) * dt + sigma * Z, axis=1))
         return x
 
+    def sim_exp_pol_and_regtype(self):
+        results = {}
+        for form in ['Matrix', 'NumericRegression']:
+            for poly_amount in [2, 3, 4, 5]:
+                prices = []
+                for i in range(10):
+                    np.random.seed(i)
+                    self.S = self.BM(sigma=0.15,T=3,Omega=10000)
+                    price, _ = self.lsm_put_price(poly_amount=poly_amount,OLS_form=form)
+                    prices.append(price)
+
+                results[(form, poly_amount)] = {
+                    'mean': np.mean(prices),
+                    'std': np.std(prices),
+                    'prices': prices
+                }
+
+        return results
+
     def sim_exp_10000(self):
         prices = []
         self.N = 1
         for i in range(10000):
             np.random.seed(i)
             self.S = self.BM(sigma=0.15,T=3,Omega=8)
-            price = self.lsm_put_price(amount=2)
+
+            price, _ = self.lsm_put_price(poly_amount=2, OLS_form = 'NumericRegression')
             prices.append(price)
-            print(i)
-            if i % 1000 == 0:
-                print(i/10000)
+
+            if (i + 1) % 1000 == 0:
+                print(f'{(i + 1) / 100} pct done')
+        return prices
+
+    def sim_exp_10000_same_b(self):
+        prices = []
+        self.N = 1
+        for i in range(10000):
+            np.random.seed(i)
+            self.S = self.BM(sigma=0.15,T=3,Omega=8)
+
+            if i == 0:
+                price, B_obs = self.lsm_put_price(poly_amount=2)
+            else:
+                price, _ = self.lsm_put_price(poly_amount=2, OLS_form = 'NumericRegression', B = B_obs)
+            prices.append(price)
+
+            if (i+1) % 1000 == 0:
+                print(f'{(i + 1) / 100} pct done')
         return prices
 
 if __name__ == '__main__':
     amr = AmericanOptions()
-    # res = amr.volatility_ml()
-    # res2 = amr.volatility_rv()
-    # print(amr.binomial_put_price(sigma=0.15))
-    # print(amr.binomial_put_price(sigma=0.15, price_type='Bermudian'))
-    # print(amr.binomial_put_price(sigma=0.15, price_type='European'))
-    b = amr.sim_exp_10000()
-    sns.kdeplot(np.array(b), bw=0.5)
+
+    ## 2.a ##
+    res, res2 = amr.volatility_ml(), amr.volatility_rv()
+
+    ## 2.b ##
+    res3 = []
+    for sigma in [0.1484, 0.15, 0.1519]:
+        for type in ['American', 'Bermudian', 'European']:
+            price = amr.binomial_put_price(sigma=sigma, price_type = 'price_type')
+            res3.append(price)
+
+    ## 2.c ##
+    res4 = amr.sim_exp_pol_and_regtype()
+    means = {form: {poly: res4[(form, poly)]['mean'] for poly in [2, 3, 4, 5]}
+             for form in ['Matrix', 'NumericRegression']}
+
+    stds = {form: {poly: res4[(form, poly)]['std'] for poly in [2, 3, 4, 5]}
+            for form in ['Matrix', 'NumericRegression']}
+
+    df_means = pd.DataFrame(means).T
+    df_stds = pd.DataFrame(stds).T
+
+    ## 2.d ##
+    res5 = amr.sim_exp_10000()
+    print(np.mean(res5), np.std(res5))
+    sns.kdeplot(np.array(res5), label = 'dynamic b')
     plt.show()
-    # print(res,res2)
+
+    ## 2.e ##
+    res6 = amr.sim_exp_10000_same_b()
+    print(np.mean(res6), np.std(res6))
+    sns.kdeplot(np.array(res6), label = 'fixed b')
+    plt.show()
