@@ -152,6 +152,6 @@ Vpf         = SPath1[index_opt + delay] * delta + bank * np.exp(r * dt)
 PnL_dynamic = Vpf - payout
 print(f"PnL w/ continued dynamic hedging = {PnL_dynamic:.4f}")
 
-plt.savefig('binomial_plots.png', dpi=150, bbox_inches='tight')
+path = r'C:\Users\nicol\OneDrive - University of Copenhagen\Desktop\4 år\FinKont2\HandIn2'
+plt.savefig(path+r'\binomial_plots.png', dpi=150, bbox_inches='tight')
 plt.show()
-print("Plot saved to binomial_plots.png")
