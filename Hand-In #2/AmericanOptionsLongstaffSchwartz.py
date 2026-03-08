@@ -3,9 +3,15 @@ from scipy.optimize import minimize
 import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
+from scipy import stats
+
+# below is a personal style for plotting, will only work if the whole repo is cloned
+from utils.plotting import use_earthy_style
+use_earthy_style()
 
 class AmericanOptions:
     def __init__(self):
+        self.filepath = ''
         self.S = np.array([
                 [1.00, 1.09, 1.08, 1.34],
                 [1.00, 1.16, 1.26, 1.54],
@@ -161,6 +167,45 @@ class AmericanOptions:
         x[:, 1:] = self.S0 * np.exp(np.cumsum((self.r - 0.5 * sigma ** 2) * dt + sigma * Z, axis=1))
         return x
 
+    def plot_hedge_error(self, data, insample = True):
+        data = np.array(data)
+        mean = np.mean(data)
+        std = np.std(data)
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+
+        # Histogram
+        ax.hist(data, bins=30, density=True, alpha=0.4, edgecolor="white", label="Data")
+
+        # KDE smoothing line
+        kde_x = np.linspace(data.min() - 3 * std, data.max() + 3 * std, 300)
+        kde_y = stats.gaussian_kde(data)(kde_x)
+        ax.plot(kde_x, kde_y, linewidth=2.5, label="KDE")
+
+        # Gaussian line
+        gauss_y = stats.norm.pdf(kde_x, mean, std)
+        ax.plot(kde_x, gauss_y, linewidth=2.5, linestyle="-.", color = '#36454F', label="Gaussian Fit")
+
+        # Mean line
+        ax.axvline(mean, color='black', linewidth=2, linestyle="--", label=f"Mean = {mean:.4f}")
+        ax.plot([], [], color='black', linewidth=0, label=f"Std = {std:.4f}")
+
+        if insample:
+            ax.set_title('LSM Put Price  | In sample ', fontsize=15, fontweight="bold", pad=15)
+        else:
+            ax.set_title('LSM Put Price | Out of sample ', fontsize=15, fontweight="bold", pad=15)
+
+        ax.set_xlabel("Error", fontsize=12)
+        ax.set_ylabel("Density", fontsize=12)
+        ax.set_xlim(left=-0,right=0.2)
+        ax.set_ylim(bottom=0,top=14)
+
+        plt.tight_layout()
+        plt.legend()
+        plt.savefig(self.filepath + rf'\price_estimate_insample_{insample}.png')
+        plt.show()
+        pass
+
     def sim_exp_pol_and_regtype(self):
         results = {}
         for form in ['Matrix', 'NumericRegression']:
@@ -168,7 +213,7 @@ class AmericanOptions:
                 prices = []
                 for i in range(10):
                     np.random.seed(i)
-                    self.S = self.BM(sigma=0.15,T=3,Omega=10000)
+                    #self.S = self.BM(sigma=0.15,T=3,Omega=10000)
                     price, _ = self.lsm_put_price(poly_amount=poly_amount,OLS_form=form)
                     prices.append(price)
 
@@ -198,12 +243,23 @@ class AmericanOptions:
         prices = []
         self.N = 1
         for i in range(10000):
-            np.random.seed(i)
-            self.S = self.BM(sigma=0.15,T=3,Omega=8)
+            self.N = 1
 
             if i == 0:
+                self.S = np.array([
+                [1.00, 1.09, 1.08, 1.34],
+                [1.00, 1.16, 1.26, 1.54],
+                [1.00, 1.22, 1.07, 1.03],
+                [1.00, 0.93, 0.97, 0.92],
+                [1.00, 1.11, 1.56, 1.52],
+                [1.00, 0.76, 0.77, 0.90],
+                [1.00, 0.92, 0.84, 1.01],
+                [1.00, 0.88, 1.22, 1.34]
+                ])
                 price, B_obs = self.lsm_put_price(poly_amount=2)
             else:
+                np.random.seed(i)
+                self.S = self.BM(sigma=0.15, T=3, Omega=8)
                 price, _ = self.lsm_put_price(poly_amount=2, OLS_form = 'NumericRegression', B = B_obs)
             prices.append(price)
 
@@ -213,6 +269,8 @@ class AmericanOptions:
 
 if __name__ == '__main__':
     amr = AmericanOptions()
+    amr.filepath = r'C:\Users\nicol\OneDrive - University of Copenhagen\Desktop\4 år\FinKont2\HandIn2'
+
 
     ## 2.a ##
     res, res2 = amr.volatility_ml(), amr.volatility_rv()
@@ -221,10 +279,22 @@ if __name__ == '__main__':
     res3 = []
     for sigma in [0.1484, 0.15, 0.1519]:
         for type in ['American', 'Bermudian', 'European']:
-            price = amr.binomial_put_price(sigma=sigma, price_type = 'price_type')
+            price = amr.binomial_put_price(sigma=sigma, price_type = type)
             res3.append(price)
+    prices_0 = np.array(res3)
 
     ## 2.c ##
+    amr.S = np.array([
+                [1.00, 1.09, 1.08, 1.34],
+                [1.00, 1.16, 1.26, 1.54],
+                [1.00, 1.22, 1.07, 1.03],
+                [1.00, 0.93, 0.97, 0.92],
+                [1.00, 1.11, 1.56, 1.52],
+                [1.00, 0.76, 0.77, 0.90],
+                [1.00, 0.92, 0.84, 1.01],
+                [1.00, 0.88, 1.22, 1.34]
+            ])
+    amr.N = 1
     res4 = amr.sim_exp_pol_and_regtype()
     means = {form: {poly: res4[(form, poly)]['mean'] for poly in [2, 3, 4, 5]}
              for form in ['Matrix', 'NumericRegression']}
@@ -237,12 +307,8 @@ if __name__ == '__main__':
 
     ## 2.d ##
     res5 = amr.sim_exp_10000()
-    print(np.mean(res5), np.std(res5))
-    sns.kdeplot(np.array(res5), label = 'dynamic b')
-    plt.show()
+    amr.plot_hedge_error(res5, insample = True)
 
     ## 2.e ##
     res6 = amr.sim_exp_10000_same_b()
-    print(np.mean(res6), np.std(res6))
-    sns.kdeplot(np.array(res6), label = 'fixed b')
-    plt.show()
+    amr.plot_hedge_error(res6, insample = False)
