@@ -30,7 +30,7 @@ class SpanningFormulaPrice:
                 return self.a * (1 - self.a) * self.gT * k ** (self.a - 2)
             return 0.0
 
-        steps = np.linspace(0.00001, self.s_prime-0.00001, points)
+        steps = np.linspace(0.00001, self.s_prime, points)[:-1]
         dk = steps[1] - steps[0]
 
         integrand = np.vectorize(
@@ -47,25 +47,28 @@ class SpanningFormulaPrice:
 
         fig, ax = plt.subplots()
         ax.plot([],[])
-        ax.plot(point_grid, prices)
+        ax.plot(point_grid, prices, label='Replication price - spanning formula')
         ax.set_xscale('log')
         ax.axhline(y=prices[-1], linestyle='--', label='Converged price')
         ax.set_xlabel('Number of discretization points')
         ax.set_ylabel('Price')
-        ax.set_title('Convergence of spanning formula price')
+        ax.set_title(r'Convergence of spanning formula price of the put in $A_t^a$')
         ax.legend()
         plt.tight_layout()
         plt.savefig('convergence.png')
 
+        # print(f"gT      = {span.gT:.4f}")  # should be ~1.57
+        # print(f"s_prime = {span.s_prime:.4f}")  # should be ~1.35
+        # print(span.price(points=10000))
+        # point_grid = np.logspace(1, 4, 50).astype(int)
+        # prices = [span.price(points=n) for n in point_grid]
+        # print(prices[0], prices[-1])
+        # _,x = span.price(points=50)
+        # plt.scatter(np.arange(1, len(x) + 1), x)
+        # plt.show()
+
+
 if __name__ == '__main__':
     span = SpanningFormulaPrice()
-    print(f"gT      = {span.gT:.4f}")  # should be ~1.57
-    print(f"s_prime = {span.s_prime:.4f}")  # should be ~1.35
-    print(span.price(points=10000))
-    span.plot()
-    point_grid = np.logspace(1, 4, 50).astype(int)
-    prices = [span.price(points=n) for n in point_grid]
-    print(prices[0], prices[-1])
-    # _,x = span.price(points=50)
-    # plt.scatter(np.arange(1, len(x) + 1), x)
-    # plt.show()
+    print(span.price())
+    # span.plot()

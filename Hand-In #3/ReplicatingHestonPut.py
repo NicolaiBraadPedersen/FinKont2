@@ -99,10 +99,10 @@ class HedgeExperiment:
         ax.plot([], [])
         ax.plot(S_T, payoff, label='True payoff')
         ax.scatter(S_T, V_T, label='Replication portfolio')
-        ax.set_xlabel('$A_T^a$')
+        ax.set_xlabel('$S_T$')
         ax.set_ylabel('Payoff')
         ax.set_xlim(left = 0, right=10)
-        ax.set_ylim(bottom = 0, top = 2)
+        ax.set_ylim(bottom = -0.08, top = 2)
         ax.set_title(f'Put payoff vs replication')
         ax.legend()
 
